@@ -7,20 +7,43 @@ document.addEventListener('DOMContentLoaded', () => {
   const PEER_KEY  = "whps_peers";
   const LOC_KEY   = "whps_locations";
 
-  const load = key => {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : [];
+  const db = firebase.firestore();
+
+  const load = async (key) => {
+    const snapshot = await db.collection(key).get();
+    return snapshot.docs.map(doc => doc.data());
   };
-  const save = (key, arr) => {
-    localStorage.setItem(key, JSON.stringify(arr));
+  
+  const save = async (key, arr) => {
+    const colRef = db.collection(key);
+    const batch = db.batch();
+  
+    // Clear existing data
+    const docs = await colRef.get();
+    docs.forEach(doc => batch.delete(doc.ref));
+  
+    // Add new data
+    arr.forEach(item => {
+      const docRef = colRef.doc(); // generate a unique ID
+      batch.set(docRef, item);
+    });
+  
+    await batch.commit();
   };
+  
 
 
 // Activities
+let activities = [];
+let peers = [];
+let locations = [];
 
-let  activities = load(ACT_KEY);
-let  peers = load(PEER_KEY);
-let locations = load(LOC_KEY)
+(async () => {
+  activities = await load(ACT_KEY);
+  peers = await load(PEER_KEY);
+  locations = await load(LOC_KEY);
+  refreshOptionsUI();
+})();
 
 
   // ─── UI helper functions ─────────────────────────────────────────────
@@ -59,23 +82,24 @@ let locations = load(LOC_KEY)
   }
 
   function refreshOptionsUI() {
+    if (!activities.length || !peers.length || !locations.length) return;
     populateSelect("activitySelect", activities, "Activity");
     populateSelect("peerSelect",      peers,      "Who");
     populateSelect("locationSelect",  locations,  "Location");
 
-    renderList("listActivities", activities, idx => {
+    renderList("listActivities", activities, async (idx) => {
       activities.splice(idx, 1);
-      save(ACT_KEY, activities);
+      await save(ACT_KEY, activities);
       refreshOptionsUI();
     });
-    renderList("listPeers", peers, idx => {
+    renderList("listPeers", peers, async (idx) => {
       peers.splice(idx, 1);
-      save(PEER_KEY, peers);
+      await save(PEER_KEY, peers);
       refreshOptionsUI();
     });
-    renderList("listLocations", locations, idx => {
+    renderList("listLocations", locations, async (idx) => {
       locations.splice(idx, 1);
-      save(LOC_KEY, locations);
+      await save(LOC_KEY, locations);
       refreshOptionsUI();
     });
   }
@@ -86,11 +110,11 @@ let locations = load(LOC_KEY)
   // ─── Manage‑options page handlers ────────────────────────────────────
   const addActivityBtn = document.getElementById("addActivityBtn");
   if (addActivityBtn) {
-    addActivityBtn.onclick = () => {
+    addActivityBtn.onclick = async () => {
       const v = document.getElementById("newActivity").value.trim();
       if (!v) return alert("Enter an activity");
       activities.push(v);
-      save(ACT_KEY, activities);
+      await save(ACT_KEY, activities);
       document.getElementById("newActivity").value = "";
       refreshOptionsUI();
     };
@@ -98,11 +122,11 @@ let locations = load(LOC_KEY)
 
   const addPeerBtn = document.getElementById("addPeerBtn");
   if (addPeerBtn) {
-    addPeerBtn.onclick = () => {
+    addPeerBtn.onclick = async () => {
       const v = document.getElementById("newPeer").value.trim();
       if (!v) return alert("Enter a peer");
       peers.push(v);
-      save(PEER_KEY, peers);
+      await save(PEER_KEY, peers);
       document.getElementById("newPeer").value = "";
       refreshOptionsUI();
     };
@@ -110,11 +134,11 @@ let locations = load(LOC_KEY)
 
   const addLocationBtn = document.getElementById("addLocationBtn");
   if (addLocationBtn) {
-    addLocationBtn.onclick = () => {
+    addLocationBtn.onclick = async () => {
       const v = document.getElementById("newLocation").value.trim();
       if (!v) return alert("Enter a location");
       locations.push(v);
-      save(LOC_KEY, locations);
+      await save(LOC_KEY, locations);
       document.getElementById("newLocation").value = "";
       refreshOptionsUI();
     };
@@ -123,7 +147,7 @@ let locations = load(LOC_KEY)
   // ─── Event‑form page handler ────────────────────────────────────────
   const addEventBtn = document.getElementById("addEventBtn");
   if (addEventBtn) {
-    addEventBtn.onclick = () => {
+    addEventBtn.onclick = async () => {
       const get = id => document.getElementById(id);
       const activity = get("activitySelect").value;
       const who      = Array.from(get("peerSelect").selectedOptions).map(o => o.value);
@@ -139,7 +163,7 @@ let locations = load(LOC_KEY)
       }
       const evts = load(EVENT_KEY);
       evts.push({ id: Date.now().toString(), activity, who, location, date, start, end });
-      save(EVENT_KEY, evts);
+      await save(EVENT_KEY, evts);
 
       // reset form
       get("activitySelect").selectedIndex = 0;
@@ -199,7 +223,7 @@ let locations = load(LOC_KEY)
       resources:    useResources ? peers.map(p=>({id:p,title:p})) : undefined,
       events:       fcEvents,
 
-      eventClick: info => {
+      eventClick: async info => {
         const ep = info.event.extendedProps;
         const whoList = ep.who;
         const msg =
@@ -210,8 +234,9 @@ let locations = load(LOC_KEY)
           `Time:     ${to12(ep.start)} – ${to12(ep.end)}\n\n` +
           `OK to delete, Cancel to keep.`;
         if (confirm(msg)) {
+        
           const updated = load(EVENT_KEY).filter(e=>e.id!==info.event.id);
-          save(EVENT_KEY, updated);
+          await save(EVENT_KEY, updated);
           info.event.remove();
         }
       },

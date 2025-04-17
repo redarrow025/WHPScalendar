@@ -48,6 +48,26 @@
     </div>
   </section>
 
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAFG76JfzmZ11flgn-1M4B034Sz24w7y0E",
+      authDomain: "whpscalendar.firebaseapp.com",
+      projectId: "whpscalendar",
+      storageBucket: "whpscalendar.firebasestorage.app",
+      messagingSenderId: "854280077567",
+      appId: "1:854280077567:web:1d67e2f5a0395be5104cca",
+      measurementId: "G-F07SM2WHCF"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+  </script>
+
+
   <script src="script.js"></script>
 </body>
 </html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WHPS schedule — Manage Options</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>WHPS Schedule Planner</h1>
+  <nav>
+    <ul class="nav-list">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="schedule.html">Add/Edit Events</a></li>
+      <li><a href="options.html">Manage Options</a></li>
+    </ul>
+  </nav>
+
+  <section id="manageSection">
+    <h2>Manage Options</h2>
+    <div class="manage row">
+      <!-- Activities -->
+      <div class="manage-col">
+        <h3>Activities</h3>
+        <div class="inline-input">
+          <input type="text" id="newActivity" placeholder="New activity…">
+          <button id="addActivityBtn">Add</button>
+        </div>
+        <ul id="listActivities"></ul>
+      </div>
+      <!-- Peers -->
+      <div class="manage-col">
+        <h3>Peers</h3>
+        <div class="inline-input">
+          <input type="text" id="newPeer" placeholder="New peer…">
+          <button id="addPeerBtn">Add</button>
+        </div>
+        <ul id="listPeers"></ul>
+      </div>
+      <!-- Locations -->
+      <div class="manage-col">
+        <h3>Locations</h3>
+        <div class="inline-input">
+          <input type="text" id="newLocation" placeholder="New location…">
+          <button id="addLocationBtn">Add</button>
+        </div>
+        <ul id="listLocations"></ul>
+      </div>
+    </div>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+</html>

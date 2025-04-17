@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WHPS schedule — Add/Edit Events</title>
+
+  <!-- FullCalendar Scheduler CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.17/index.global.min.css"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>WHPS Schedule Planner</h1>
+    <nav>
+        <ul class="nav-list">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="schedule.html">Add/Edit Events</a></li>
+          <li><a href="options.html">Manage Options</a></li>
+        </ul>
+      </nav>
+
+  <section id="inputSection">
+    <h2>Add or Modify an Event</h2>
+    <div class="row row1">
+      <select id="activitySelect" required></select>
+      <select id="locationSelect" required></select>
+    </div>
+    <div class="row">
+      <select id="peerSelect" multiple size="5" required></select>
+    </div>
+    <div class="row row3">
+      <input type="date" id="date" required>
+      <input type="time" id="start" step="1800" required>
+      <input type="time" id="end"   step="1800" required>
+    </div>
+    <button id="addEventBtn">➕ Add Event</button>
+  </section>
+
+  <div class="controls">
+    <button id="showDayBtn">📅 Show Day</button>
+    <button id="showWeekBtn">📆 Show Week</button>
+    <button id="showPeerBtn">👥 Show Peer Timeline</button>
+  </div>
+  <div id="calendar" class="hidden"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.17/index.global.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

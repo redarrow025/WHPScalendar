@@ -1,0 +1,144 @@
+/* nav container */
+nav {
+  background: #000;
+  padding: 0.75rem 1rem;
+}
+/* reset the list */
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;             /* horizontal layout */
+  justify-content: center;   /* center the items */
+}
+/* each list item */
+.nav-list li {
+  margin: 0 1rem;
+}
+/* links */
+.nav-list a {
+  display: inline-block;            /* allow width & transform */
+  position: relative;
+  color: #fff;
+  text-decoration: none;
+  margin: 0 1rem;
+  transition: transform 200ms ease;
+}
+/* underline pseudo-element */
+.nav-list a::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: #FFC904;
+  transition: width 200ms ease;
+}
+/* hover effects */
+.nav-list a:hover {
+  transform: scale(1.1);
+}
+.nav-list a:hover::after {
+  width: 100%;
+}
+/* ── Base ─────────────────────────────────────────────────────────── */
+body {
+    font-family: sans-serif;
+    max-width: 3840px;
+    margin: auto;
+    padding: 1rem;
+    text-align: center;
+  }
+  h1 {
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  
+  /* ── Manage section ──────────────────────────────────────────────── */
+  #manageSection h2 {
+    margin-top: 2rem;
+    text-align: center;
+  }
+  .manage {  /* grid from earlier… */
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    justify-items: center;
+  }
+  .manage-col h3 {
+    text-align: center;
+  }
+  .inline-input {
+    display: flex;
+    justify-content: center;    /* ← center the children */
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .manage-col ul {
+    list-style: none;
+    padding: 0;
+  }
+  .manage-col li {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+  }
+  .manage-col button.remove-btn {
+    background: none;
+    border: none;
+    color: crimson;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  
+  /* ── Event form ─────────────────────────────────────────────────── */
+  #inputSection h2 {
+    margin-top: 2rem;
+  }
+  .row {
+    display: grid;
+    gap: 0.6rem;
+    margin-bottom: 0.6rem;
+  }
+  .row1 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .row3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  select,
+  input,
+  button {
+    padding: 0.4rem;
+    font-size: 1rem;
+  }
+  button {
+    cursor: pointer;
+  }
+  
+  /* ── Controls & Calendar ───────────────────────────────────────── */
+  .controls {
+    max-width: 100%;
+    justify-content: center;
+    margin: 0 auto 1rem
+  }
+  #calendar {
+    width: auto;
+    margin: 2rem 0;
+  }
+  .hidden {
+    display: none;
+  }
+  
+  /* ── (Optional) override FullCalendar CSS variables ─────────────── */
+  :root {
+    --fc-event-bg-color:     #e0f7fa;
+    --fc-event-border-color: #4dd0e1;
+    --fc-event-text-color:   #006064;
+    --fc-button-bg-color:    #006064;
+    --fc-button-text-color:  #fff;
+    --fc-font-family:        "Segoe UI", sans-serif;
+  }
+  
+  

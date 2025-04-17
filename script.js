@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const load = async (key) => {
     const snapshot = await db.collection(key).get();
-    return snapshot.docs.map(doc => doc.data());
+    return snapshot.docs.map(doc => doc.data().name);
   };
   
   const save = async (key, arr) => {
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add new data
     arr.forEach(item => {
       const docRef = colRef.doc(); // generate a unique ID
-      batch.set(docRef, item);
+      batch.set(docRef, { name:item });
     });
   
     await batch.commit();

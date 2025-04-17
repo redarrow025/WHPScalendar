@@ -87,10 +87,10 @@ let locations = [];
     console.log("locations:", locations);
 
     if (!activities.length || !peers.length || !locations.length) return;
+    //populateSelect("activitySelect", activities, "Activity");
+    //populateSelect("peerSelect",      peers,      "Who");
+    //populateSelect("locationSelect",  locations,  "Location");
 
-    populateSelect("activitySelect", activities, "Activity");
-    populateSelect("peerSelect",      peers,      "Who");
-    populateSelect("locationSelect",  locations,  "Location");
 
     renderList("listActivities", activities, async (idx) => {
       activities.splice(idx, 1);

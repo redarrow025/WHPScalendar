@@ -82,7 +82,12 @@ let locations = [];
   }
 
   function refreshOptionsUI() {
+    console.log("activities:", activities);
+    console.log("peers:", peers);
+    console.log("locations:", locations);
+
     if (!activities.length || !peers.length || !locations.length) return;
+
     populateSelect("activitySelect", activities, "Activity");
     populateSelect("peerSelect",      peers,      "Who");
     populateSelect("locationSelect",  locations,  "Location");

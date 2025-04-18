@@ -241,3 +241,20 @@ button .ripple {
 body > :not(nav) {
   padding: 0 5rem;
 }
+
+/* 1. Give the Add Event button some breathing room */
+#addEventBtn {
+  margin-bottom: var(--gap);   /* uses your existing spacing var (1rem) */
+}
+
+/* 2. Style the “Preview your work” text */
+.preview-text {
+  font-size: 1rem;
+  color: var(--color-text);
+  margin-bottom: var(--gap);   /* space before the controls */
+}
+
+/* 3. (Optional) tighten up the controls if needed */
+.controls {
+  margin-top: 0;               /* remove any extra gap above */
+}

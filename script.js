@@ -1,6 +1,7 @@
 // script.js
+
 document.addEventListener('DOMContentLoaded', async () => {
-  
+
   document.querySelectorAll("button").forEach(btn=>{
     btn.addEventListener("click", e=>{
       const circle = document.createElement("span");
@@ -81,7 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function refreshOptionsUI() {
     populateSelect("activitySelect", activities, "Activity");
-    populateSelect("peerSelect",      peers,      "Who");
+    renderPeerToggles(peers);
     populateSelect("locationSelect",  locations,  "Location");
 
     renderList("listActivities", activities, async (idx) => {
@@ -128,6 +129,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
   }
 
+  function renderPeerToggles(peers) {
+    const container = document.getElementById("peerContainer");
+    if (!container) return;
+    container.innerHTML = "";
+    peers.forEach(name => {
+      // build: <label class="peer-item">
+      //          <input type="checkbox" class="peer-checkbox" value="name">
+      //          <span class="peer-circle"></span>
+      //          <span class="peer-name">name</span>
+      //        </label>
+      const label = document.createElement("label");
+      label.className = "peer-item";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.className = "peer-checkbox";
+      cb.value = name;
+      const circle = document.createElement("span");
+      circle.className = "peer-circle";
+      const txt = document.createElement("span");
+      txt.className = "peer-name";
+      txt.textContent = name;
+      label.append(cb, circle, txt);
+      container.appendChild(label);
+    });
+  }
+  
+
   const addLocationBtn = document.getElementById("addLocationBtn");
   if (addLocationBtn) {
     addLocationBtn.onclick = async () => {
@@ -146,7 +174,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     addEventBtn.onclick = async () => {
       const get = id => document.getElementById(id);
       const activity = get("activitySelect").value;
-      const who      = Array.from(get("peerSelect").selectedOptions).map(o => o.value);
+      const who = Array.from(
+        document.querySelectorAll(".peer-checkbox:checked")
+      ).map(cb => cb.value);      
       const location = get("locationSelect").value;
       const date     = get("date").value;
       const start    = get("start").value;

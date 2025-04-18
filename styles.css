@@ -258,3 +258,36 @@ body > :not(nav) {
 .controls {
   margin-top: 0;               /* remove any extra gap above */
 }
+
+/* Peer‑toggle circles */
+.peer-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 0.6rem;  /* match your .row spacing */
+}
+.peer-item {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+.peer-checkbox {
+  display: none;
+}
+.peer-circle {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid var(--color-primary);
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  transition: background 0.2s, border-color 0.2s;
+}
+.peer-checkbox:checked + .peer-circle {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.peer-name {
+  font-size: 1rem;
+  color: var(--color-text);
+}

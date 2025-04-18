@@ -1,5 +1,19 @@
 // script.js
 document.addEventListener('DOMContentLoaded', async () => {
+  
+  document.querySelectorAll("button").forEach(btn=>{
+    btn.addEventListener("click", e=>{
+      const circle = document.createElement("span");
+      circle.classList.add("ripple");
+      const d = Math.max(btn.clientWidth, btn.clientHeight);
+      circle.style.width = circle.style.height = d + "px";
+      circle.style.left = e.clientX - btn.getBoundingClientRect().left - d/2 + "px";
+      circle.style.top  = e.clientY - btn.getBoundingClientRect().top - d/2 + "px";
+      btn.appendChild(circle);
+      setTimeout(()=> circle.remove(), 600);
+    });
+  });
+  
   // ─── Firebase Setup ─────────────────────────────────────────────
   const EVENT_KEY = "whps_events";
   const ACT_KEY   = "whps_activities";

@@ -1,7 +1,6 @@
 // script.js
-
-document.addEventListener('DOMContentLoaded', () => {
-  // ─── Shared storage helpers ────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  // ─── Firebase Setup ─────────────────────────────────────────────
   const EVENT_KEY = "whps_events";
   const ACT_KEY   = "whps_activities";
   const PEER_KEY  = "whps_peers";
@@ -13,40 +12,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const snapshot = await db.collection(key).get();
     return snapshot.docs.map(doc => doc.data().name);
   };
-  
+
   const save = async (key, arr) => {
     const colRef = db.collection(key);
     const batch = db.batch();
-  
-    // Clear existing data
     const docs = await colRef.get();
     docs.forEach(doc => batch.delete(doc.ref));
-  
-    // Add new data
     arr.forEach(item => {
-      const docRef = colRef.doc(); // generate a unique ID
-      batch.set(docRef, { name:item });
+      const docRef = colRef.doc();
+      batch.set(docRef, { name: item });
     });
-  
     await batch.commit();
   };
-  
 
+  // ─── Load Data from Firestore ───────────────────────────────────
+  let activities = await load(ACT_KEY);
+  let peers = await load(PEER_KEY);
+  let locations = await load(LOC_KEY);
 
-// Activities
-let activities = [];
-let peers = [];
-let locations = [];
-
-(async () => {
-  activities = await load(ACT_KEY);
-  peers = await load(PEER_KEY);
-  locations = await load(LOC_KEY);
-  refreshOptionsUI();
-})();
-
-
-  // ─── UI helper functions ─────────────────────────────────────────────
+  // ─── UI Utilities ───────────────────────────────────────────────
   function populateSelect(id, items, placeholder) {
     const sel = document.getElementById(id);
     if (!sel) return;
@@ -82,15 +66,9 @@ let locations = [];
   }
 
   function refreshOptionsUI() {
-    console.log("activities:", activities);
-    console.log("peers:", peers);
-    console.log("locations:", locations);
-
-    if (!activities.length || !peers.length || !locations.length) return;
-    //populateSelect("activitySelect", activities, "Activity");
-    //populateSelect("peerSelect",      peers,      "Who");
-    //populateSelect("locationSelect",  locations,  "Location");
-
+    populateSelect("activitySelect", activities, "Activity");
+    populateSelect("peerSelect",      peers,      "Who");
+    populateSelect("locationSelect",  locations,  "Location");
 
     renderList("listActivities", activities, async (idx) => {
       activities.splice(idx, 1);
@@ -109,10 +87,9 @@ let locations = [];
     });
   }
 
-  // run once on load
   refreshOptionsUI();
 
-  // ─── Manage‑options page handlers ────────────────────────────────────
+  // ─── Manage Option Buttons ──────────────────────────────────────
   const addActivityBtn = document.getElementById("addActivityBtn");
   if (addActivityBtn) {
     addActivityBtn.onclick = async () => {
@@ -149,7 +126,7 @@ let locations = [];
     };
   }
 
-  // ─── Event‑form page handler ────────────────────────────────────────
+  // ─── Event Form Logic ───────────────────────────────────────────
   const addEventBtn = document.getElementById("addEventBtn");
   if (addEventBtn) {
     addEventBtn.onclick = async () => {
@@ -160,73 +137,75 @@ let locations = [];
       const date     = get("date").value;
       const start    = get("start").value;
       const end      = get("end").value;
+
       if (!activity || !who.length || !location || !date || !start || !end) {
         return alert("Please complete all fields");
       }
       if (end <= start) {
         return alert("End must be after start");
       }
-      const evts = load(EVENT_KEY);
+
+      const evts = await load(EVENT_KEY);
       evts.push({ id: Date.now().toString(), activity, who, location, date, start, end });
       await save(EVENT_KEY, evts);
 
-      // reset form
       get("activitySelect").selectedIndex = 0;
-      get("peerSelect").selectedIndex      = -1;
+      get("peerSelect").selectedIndex = -1;
       get("locationSelect").selectedIndex = 0;
       ["date","start","end"].forEach(id => get(id).value = "");
+
       alert("Event added ✔️");
     };
   }
 
-  // ─── Calendar setup (Home & schedule pages) ─────────────────────────
+  // ─── Calendar Logic ─────────────────────────────────────────────
   const calendarEl = document.getElementById("calendar");
   let calendar;
 
   const padNum = n => n.toString().padStart(2, "0");
-  const to12    = t => {
+  const to12 = t => {
     let [h,m] = t.split(":").map(Number);
-    const ap  = h >= 12 ? "PM" : "AM";
+    const ap = h >= 12 ? "PM" : "AM";
     h = ((h + 11) % 12) + 1;
     return `${h}:${padNum(m)} ${ap}`;
   };
 
-  function initCalendar(viewType, useResources = false) {
+  async function initCalendar(viewType, useResources = false) {
     if (!calendarEl) return;
     calendarEl.classList.remove("hidden");
     if (calendar) calendar.destroy();
 
-    const formDate    = document.getElementById("date")?.value;
+    const formDate = document.getElementById("date")?.value;
     const initialDate = formDate || new Date().toISOString().slice(0,10);
 
-    const stored = load(EVENT_KEY);
+    const stored = await load(EVENT_KEY);
     const fcEvents = stored.map(ev => {
       const whoList = Array.isArray(ev.who) ? ev.who : [ev.who];
       return {
-        id:          ev.id,
-        title:       `${ev.activity} – ${whoList.join(", ")}`,
-        start:       `${ev.date}T${ev.start}`,
-        end:         `${ev.date}T${ev.end}`,
+        id: ev.id,
+        title: `${ev.activity} – ${whoList.join(", ")}`,
+        start: `${ev.date}T${ev.start}`,
+        end: `${ev.date}T${ev.end}`,
         resourceIds: useResources ? whoList : undefined,
         extendedProps: { ...ev, who: whoList }
       };
     });
 
     calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView:  useResources ? "resourceTimelineDay" : viewType,
+      initialView: useResources ? "resourceTimelineDay" : viewType,
       initialDate,
       headerToolbar: {
-        left:  "prev",
-        center:"title",
+        left: "prev",
+        center: "title",
         right: "next"
       },
-      slotMinTime:  "07:00:00",
-      slotMaxTime:  "18:00:00",
+      slotMinTime: "07:00:00",
+      slotMaxTime: "18:00:00",
       slotDuration: "00:30:00",
-      navLinks:     true,
-      editable:     true,
-      resources:    useResources ? peers.map(p=>({id:p,title:p})) : undefined,
-      events:       fcEvents,
+      navLinks: true,
+      editable: true,
+      resources: useResources ? peers.map(p => ({ id: p, title: p })) : undefined,
+      events: fcEvents,
 
       eventClick: async info => {
         const ep = info.event.extendedProps;
@@ -239,8 +218,8 @@ let locations = [];
           `Time:     ${to12(ep.start)} – ${to12(ep.end)}\n\n` +
           `OK to delete, Cancel to keep.`;
         if (confirm(msg)) {
-        
-          const updated = load(EVENT_KEY).filter(e=>e.id!==info.event.id);
+          const allEvents = await load(EVENT_KEY);
+          const updated = allEvents.filter(e => e.id !== info.event.id);
           await save(EVENT_KEY, updated);
           info.event.remove();
         }
@@ -257,10 +236,12 @@ let locations = [];
     calendar.render();
   }
 
+  // ─── Calendar Controls ──────────────────────────────────────────
   const showDayBtn   = document.getElementById("showDayBtn");
   const showWeekBtn  = document.getElementById("showWeekBtn");
   const showPeerBtn  = document.getElementById("showPeerBtn");
-  if (showDayBtn  ) showDayBtn.onclick  = () => initCalendar("timeGridDay",   false);
-  if (showWeekBtn ) showWeekBtn.onclick = () => initCalendar("timeGridWeek",  false);
-  if (showPeerBtn ) showPeerBtn.onclick = () => initCalendar("",             true);
+
+  if (showDayBtn)  showDayBtn.onclick  = () => initCalendar("timeGridDay", false);
+  if (showWeekBtn) showWeekBtn.onclick = () => initCalendar("timeGridWeek", false);
+  if (showPeerBtn) showPeerBtn.onclick = () => initCalendar("resourceTimelineDay", true);
 });

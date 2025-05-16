@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WHPS Login</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>WHPS Login</h1>
+
+  <form id="formContainer">
+    <input type="text" id="name" placeholder="Full Name"><br>
+    <input type="email" id="email" placeholder="Email" required><br>
+    <input type="password" id="password" placeholder="Password" required><br>
+    <button type="submit" id="loginBtn">Login</button>
+    <button type="submit" id="signupBtn" class="hidden">Sign Up</button>
+    <p>
+      <a href="#" id="toggleMode">Don’t have an account? Sign up here</a>
+    </p>
+    <p id="errorMsg" style="color:red;"></p>
+  </form>
+  
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAFG76JfzmZ11flgn-1M4B034Sz24w7y0E",
+      authDomain: "whpscalendar.firebaseapp.com",
+      projectId: "whpscalendar",
+      storageBucket: "whpscalendar.firebasestorage.app",
+      messagingSenderId: "854280077567",
+      appId: "1:854280077567:web:1d67e2f5a0395be5104cca",
+      measurementId: "G-F07SM2WHCF"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let mode = "login";
+
+    const nameField = document.getElementById("name");
+    const emailField = document.getElementById("email");
+    const passwordField = document.getElementById("password");
+    const loginBtn = document.getElementById("loginBtn");
+    const signupBtn = document.getElementById("signupBtn");
+    const toggleLink = document.getElementById("toggleMode");
+    const errorMsg = document.getElementById("errorMsg");
+
+    nameField.style.display = "none"; // Hide name on login
+
+    toggleLink.onclick = () => {
+      mode = mode === "login" ? "signup" : "login";
+      loginBtn.classList.toggle("hidden");
+      signupBtn.classList.toggle("hidden");
+      nameField.style.display = mode === "signup" ? "block" : "none";
+      toggleLink.textContent = mode === "login"
+        ? "Don’t have an account? Sign up here"
+        : "Already have an account? Log in here";
+    };
+
+    loginBtn.onclick = async () => {
+      try {
+        const result = await auth.signInWithEmailAndPassword(emailField.value, passwordField.value);
+        const uid = result.user.uid;
+        const doc = await db.collection("users").doc(uid).get();
+        if (!doc.exists) {
+          await db.collection("users").doc(uid).set({
+            uid,
+            email: emailField.value,
+            role: "peer",
+            name: emailField.value.split("@")[0]
+          });
+        }
+        window.location.href = "index.html";
+      } catch (e) {
+        errorMsg.textContent = e.message;
+      }
+    };
+
+    signupBtn.onclick = async () => {
+      try {
+        if (!nameField.value.trim()) return errorMsg.textContent = "Please enter your name.";
+        const result = await auth.createUserWithEmailAndPassword(emailField.value, passwordField.value);
+        const uid = result.user.uid;
+        await db.collection("users").doc(uid).set({
+          uid,
+          email: emailField.value,
+          role: "peer",
+          name: nameField.value.trim()
+        });
+        window.location.href = "index.html";
+      } catch (e) {
+        errorMsg.textContent = e.message;
+      }
+    };
+  </script>
+</body>
+</html>

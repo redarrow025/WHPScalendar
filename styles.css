@@ -291,3 +291,79 @@ body > :not(nav) {
   font-size: 1rem;
   color: var(--color-text);
 }
+
+.loader {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.loader::after {
+  content: "";
+  width: 50px;
+  height: 50px;
+  border: 6px solid #ccc;
+  border-top: 6px solid var(--color-secondary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* LOGIN PAGE STYLING */
+
+#formContainer {
+  max-width: 400px;
+  margin: 3rem auto;
+  padding: 2rem;
+  background: var(--color-surface);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  text-align: center;
+}
+
+#formContainer input {
+  width: 100%;
+  padding: 0.6rem;
+  font-size: 1rem;
+  margin: 0.5rem 0;
+  border: 1px solid #ccc;
+  border-radius: var(--radius);
+  box-sizing: border-box;
+}
+
+#formContainer button {
+  width: 100%;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  background: var(--color-secondary);
+  color: var(--color-primary);
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 200ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+#formContainer button:hover {
+  background: var(--color-secondary-hover);
+}
+
+#formContainer a {
+  display: inline-block;
+  margin-top: 1rem;
+  color: var(--color-primary);
+  font-size: 0.9rem;
+  text-decoration: underline;
+}

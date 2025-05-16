@@ -6,14 +6,19 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>WHPS Schedule Planner</h1>
+  <div id="loader" class="loader"></div>
+
+  <h1>WHPS Schedule Planner</h1>
   <nav>
     <ul class="nav-list">
       <li><a href="index.html">Home</a></li>
-      <li><a href="schedule.html">Add/Edit Events</a></li>
-      <li><a href="options.html">Manage Options</a></li>
+      <li><a href="schedule.html" class="manager-only">Add/Edit Events</a></li>
+      <li><a href="options.html" class="manager-only">Manage Options</a></li>
+      <li><a href="#" id="logoutBtn">Logout</a></li>
     </ul>
   </nav>
+
+  <h2 id="welcomeMsg">Hello 👋</h2>
 
   <section id="manageSection">
     <h2>Manage Options</h2>
@@ -27,15 +32,13 @@
         </div>
         <ul id="listActivities"></ul>
       </div>
+
       <!-- Peers -->
       <div class="manage-col">
         <h3>Peers</h3>
-        <div class="inline-input">
-          <input type="text" id="newPeer" placeholder="New peer…">
-          <button id="addPeerBtn">Add</button>
-        </div>
-        <ul id="listPeers"></ul>
+        <ul id="listPeersWithPromote"></ul>
       </div>
+
       <!-- Locations -->
       <div class="manage-col">
         <h3>Locations</h3>
@@ -48,11 +51,11 @@
     </div>
   </section>
 
-  <!-- Firebase SDKs -->
+  <!-- Firebase + JS -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
+  <script src="script.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAFG76JfzmZ11flgn-1M4B034Sz24w7y0E",
@@ -63,11 +66,52 @@
       appId: "1:854280077567:web:1d67e2f5a0395be5104cca",
       measurementId: "G-F07SM2WHCF"
     };
-
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    window.onload = () => {
+      auth.onAuthStateChanged(async user => {
+        if (!user) return window.location.href = "login.html";
+        const doc = await db.collection("users").doc(user.uid).get();
+        const data = doc.data();
+        window.currentUser = {
+          uid: user.uid,
+          email: data.email,
+          role: data.role,
+          name: data.name || data.email.split("@")[0]
+        };
+
+        if (data.role === "peer") {
+          alert("Access denied: Peers cannot view this page.");
+          return window.location.href = "index.html";
+        }
+
+        document.getElementById("welcomeMsg").textContent = `Hello, ${window.currentUser.name} 👋`;
+
+        // Load peer list
+        const snapshot = await db.collection("users").where("role", "==", "peer").get();
+        const peerList = document.getElementById("listPeersWithPromote");
+        peerList.innerHTML = "";
+        snapshot.forEach(doc => {
+          const name = doc.data().name || doc.data().email;
+          const li = document.createElement("li");
+          li.textContent = name;
+          peerList.appendChild(li);
+        });
+
+        // Load activities/locations via shared script
+        refreshOptionsUI();
+
+        document.getElementById("logoutBtn").onclick = async (e) => {
+          e.preventDefault();
+          await auth.signOut();
+          window.location.href = "login.html";
+        };
+
+        document.getElementById("loader").style.display = "none";
+      });
+    };
   </script>
-
-
-  <script src="script.js"></script>
 </body>
 </html>

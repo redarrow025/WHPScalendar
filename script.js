@@ -1,28 +1,13 @@
-// script.js
-
-document.addEventListener('DOMContentLoaded', async () => {
-
-  document.querySelectorAll("button").forEach(btn=>{
-    btn.addEventListener("click", e=>{
-      const circle = document.createElement("span");
-      circle.classList.add("ripple");
-      const d = Math.max(btn.clientWidth, btn.clientHeight);
-      circle.style.width = circle.style.height = d + "px";
-      circle.style.left = e.clientX - btn.getBoundingClientRect().left - d/2 + "px";
-      circle.style.top  = e.clientY - btn.getBoundingClientRect().top - d/2 + "px";
-      btn.appendChild(circle);
-      setTimeout(()=> circle.remove(), 600);
-    });
-  });
-  
-  // ─── Firebase Setup ─────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
   const EVENT_KEY = "whps_events";
-  const ACT_KEY   = "whps_activities";
-  const PEER_KEY  = "whps_peers";
-  const LOC_KEY   = "whps_locations";
-
+  const ACT_KEY = "whps_activities";
+  const LOC_KEY = "whps_locations";
   const db = firebase.firestore();
+  const auth = firebase.auth();
 
+  let calendar;
+
+  // ─── Firestore Helpers ──────────────────────
   const load = async (key) => {
     const snapshot = await db.collection(key).get();
     return snapshot.docs.map(doc => doc.data().name);
@@ -40,105 +25,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     await batch.commit();
   };
 
-  // ─── Load Data from Firestore ───────────────────────────────────
-  let activities = await load(ACT_KEY);
-  let peers = await load(PEER_KEY);
-  let locations = await load(LOC_KEY);
-
-  // ─── UI Utilities ───────────────────────────────────────────────
-  function populateSelect(id, items, placeholder) {
+  // ─── UI Utilities ───────────────────────────
+  const populateSelect = (id, items, placeholder) => {
     const sel = document.getElementById(id);
     if (!sel) return;
     sel.innerHTML = "";
     if (!sel.multiple) {
-      const ph = document.createElement("option");
-      ph.textContent = `-- ${placeholder} --`;
-      ph.disabled = true;
-      ph.selected = true;
-      sel.appendChild(ph);
+      const opt = document.createElement("option");
+      opt.disabled = true;
+      opt.selected = true;
+      opt.textContent = `-- ${placeholder} --`;
+      sel.appendChild(opt);
     }
     items.forEach(item => {
-      const o = document.createElement("option");
-      o.value = o.textContent = item;
-      sel.appendChild(o);
+      const opt = document.createElement("option");
+      opt.value = opt.textContent = item;
+      sel.appendChild(opt);
     });
-  }
+  };
 
-  function renderList(id, items, onRemove) {
+  const renderList = (id, items, onRemove) => {
     const ul = document.getElementById(id);
     if (!ul) return;
     ul.innerHTML = "";
-    items.forEach((it, i) => {
+    items.forEach((item, idx) => {
       const li = document.createElement("li");
-      li.textContent = it;
+      li.textContent = item;
       const btn = document.createElement("button");
       btn.textContent = "×";
-      btn.className   = "remove-btn";
-      btn.onclick     = () => onRemove(i);
+      btn.className = "remove-btn";
+      btn.onclick = () => onRemove(idx);
       li.appendChild(btn);
       ul.appendChild(li);
     });
-  }
+  };
 
-  function refreshOptionsUI() {
-    populateSelect("activitySelect", activities, "Activity");
-    renderPeerToggles(peers);
-    populateSelect("locationSelect",  locations,  "Location");
-
-    renderList("listActivities", activities, async (idx) => {
-      activities.splice(idx, 1);
-      await save(ACT_KEY, activities);
-      refreshOptionsUI();
-    });
-    renderList("listPeers", peers, async (idx) => {
-      peers.splice(idx, 1);
-      await save(PEER_KEY, peers);
-      refreshOptionsUI();
-    });
-    renderList("listLocations", locations, async (idx) => {
-      locations.splice(idx, 1);
-      await save(LOC_KEY, locations);
-      refreshOptionsUI();
-    });
-  }
-
-  refreshOptionsUI();
-
-  // ─── Manage Option Buttons ──────────────────────────────────────
-  const addActivityBtn = document.getElementById("addActivityBtn");
-  if (addActivityBtn) {
-    addActivityBtn.onclick = async () => {
-      const v = document.getElementById("newActivity").value.trim();
-      if (!v) return alert("Enter an activity");
-      activities.push(v);
-      await save(ACT_KEY, activities);
-      document.getElementById("newActivity").value = "";
-      refreshOptionsUI();
-    };
-  }
-
-  const addPeerBtn = document.getElementById("addPeerBtn");
-  if (addPeerBtn) {
-    addPeerBtn.onclick = async () => {
-      const v = document.getElementById("newPeer").value.trim();
-      if (!v) return alert("Enter a peer");
-      peers.push(v);
-      await save(PEER_KEY, peers);
-      document.getElementById("newPeer").value = "";
-      refreshOptionsUI();
-    };
-  }
-
-  function renderPeerToggles(peers) {
+  const renderPeerToggles = (peers) => {
     const container = document.getElementById("peerContainer");
     if (!container) return;
     container.innerHTML = "";
     peers.forEach(name => {
-      // build: <label class="peer-item">
-      //          <input type="checkbox" class="peer-checkbox" value="name">
-      //          <span class="peer-circle"></span>
-      //          <span class="peer-name">name</span>
-      //        </label>
       const label = document.createElement("label");
       label.className = "peer-item";
       const cb = document.createElement("input");
@@ -153,139 +79,227 @@ document.addEventListener('DOMContentLoaded', async () => {
       label.append(cb, circle, txt);
       container.appendChild(label);
     });
-  }
-  
-
-  const addLocationBtn = document.getElementById("addLocationBtn");
-  if (addLocationBtn) {
-    addLocationBtn.onclick = async () => {
-      const v = document.getElementById("newLocation").value.trim();
-      if (!v) return alert("Enter a location");
-      locations.push(v);
-      await save(LOC_KEY, locations);
-      document.getElementById("newLocation").value = "";
-      refreshOptionsUI();
-    };
-  }
-
-  // ─── Event Form Logic ───────────────────────────────────────────
-  const addEventBtn = document.getElementById("addEventBtn");
-  if (addEventBtn) {
-    addEventBtn.onclick = async () => {
-      const get = id => document.getElementById(id);
-      const activity = get("activitySelect").value;
-      const who = Array.from(
-        document.querySelectorAll(".peer-checkbox:checked")
-      ).map(cb => cb.value);      
-      const location = get("locationSelect").value;
-      const date     = get("date").value;
-      const start    = get("start").value;
-      const end      = get("end").value;
-
-      if (!activity || !who.length || !location || !date || !start || !end) {
-        return alert("Please complete all fields");
-      }
-      if (end <= start) {
-        return alert("End must be after start");
-      }
-
-      const evts = await load(EVENT_KEY);
-      evts.push({ id: Date.now().toString(), activity, who, location, date, start, end });
-      await save(EVENT_KEY, evts);
-
-      get("activitySelect").selectedIndex = 0;
-      get("peerSelect").selectedIndex = -1;
-      get("locationSelect").selectedIndex = 0;
-      ["date","start","end"].forEach(id => get(id).value = "");
-
-      alert("Event added ✔️");
-    };
-  }
-
-  // ─── Calendar Logic ─────────────────────────────────────────────
-  const calendarEl = document.getElementById("calendar");
-  let calendar;
-
-  const padNum = n => n.toString().padStart(2, "0");
-  const to12 = t => {
-    let [h,m] = t.split(":").map(Number);
-    const ap = h >= 12 ? "PM" : "AM";
-    h = ((h + 11) % 12) + 1;
-    return `${h}:${padNum(m)} ${ap}`;
   };
 
-  async function initCalendar(viewType, useResources = false) {
-    if (!calendarEl) return;
-    calendarEl.classList.remove("hidden");
-    if (calendar) calendar.destroy();
+  // ─── Refresh Options UI (Options Page) ─────
+  window.refreshOptionsUI = async () => {
+    const activities = await load(ACT_KEY);
+    const locations = await load(LOC_KEY);
 
-    const formDate = document.getElementById("date")?.value;
-    const initialDate = formDate || new Date().toISOString().slice(0,10);
+    populateSelect("activitySelect", activities, "Activity");
+    populateSelect("locationSelect", locations, "Location");
 
-    const stored = await load(EVENT_KEY);
-    const fcEvents = stored.map(ev => {
-      const whoList = Array.isArray(ev.who) ? ev.who : [ev.who];
-      return {
-        id: ev.id,
-        title: `${ev.activity} – ${whoList.join(", ")}`,
-        start: `${ev.date}T${ev.start}`,
-        end: `${ev.date}T${ev.end}`,
-        resourceIds: useResources ? whoList : undefined,
-        extendedProps: { ...ev, who: whoList }
-      };
+    renderList("listActivities", activities, async (idx) => {
+      activities.splice(idx, 1);
+      await save(ACT_KEY, activities);
+      refreshOptionsUI();
     });
 
+    renderList("listLocations", locations, async (idx) => {
+      locations.splice(idx, 1);
+      await save(LOC_KEY, locations);
+      refreshOptionsUI();
+    });
+
+    const addActivityBtn = document.getElementById("addActivityBtn");
+    if (addActivityBtn) {
+      addActivityBtn.onclick = async () => {
+        const val = document.getElementById("newActivity").value.trim();
+        if (!val) return alert("Enter a valid activity.");
+        activities.push(val);
+        await save(ACT_KEY, activities);
+        document.getElementById("newActivity").value = "";
+        refreshOptionsUI();
+      };
+    }
+
+    const addLocationBtn = document.getElementById("addLocationBtn");
+    if (addLocationBtn) {
+      addLocationBtn.onclick = async () => {
+        const val = document.getElementById("newLocation").value.trim();
+        if (!val) return alert("Enter a valid location.");
+        locations.push(val);
+        await save(LOC_KEY, locations);
+        document.getElementById("newLocation").value = "";
+        refreshOptionsUI();
+      };
+    }
+  };
+
+  // ─── Ripple Effect for Buttons ─────────────
+  document.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", e => {
+      const circle = document.createElement("span");
+      circle.classList.add("ripple");
+      const d = Math.max(btn.clientWidth, btn.clientHeight);
+      circle.style.width = circle.style.height = d + "px";
+      circle.style.left = e.clientX - btn.getBoundingClientRect().left - d / 2 + "px";
+      circle.style.top = e.clientY - btn.getBoundingClientRect().top - d / 2 + "px";
+      btn.appendChild(circle);
+      setTimeout(() => circle.remove(), 600);
+    });
+  });
+
+  // ─── Calendar Logic (All Pages) ────────────
+  const calendarEl = document.getElementById("calendar");
+
+  const to12 = (t) => {
+    let [h, m] = t.split(":").map(Number);
+    const ap = h >= 12 ? "PM" : "AM";
+    h = ((h + 11) % 12) + 1;
+    return `${h}:${m.toString().padStart(2, "0")} ${ap}`;
+  };
+
+  const renderCalendar = async (viewType, useResources = false) => {
+    const stored = await load(EVENT_KEY);
+    const role = window.currentUser?.role || "peer";
+    const name = window.currentUser?.name || "";
+
+    const visible = role === "peer"
+      ? stored.filter(ev => (ev.who || []).includes(name))
+      : stored;
+
+    const fcEvents = visible.map(ev => ({
+      id: ev.id,
+      title: `${ev.activity} – ${ev.who.join(", ")}`,
+      start: `${ev.date}T${ev.start}`,
+      end: `${ev.date}T${ev.end}`,
+      resourceIds: useResources ? ev.who : undefined,
+      extendedProps: ev
+    }));
+
+    if (calendar) calendar.destroy();
     calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: useResources ? "resourceTimelineDay" : viewType,
-      initialDate,
-      headerToolbar: {
-        left: "prev",
-        center: "title",
-        right: "next"
-      },
+      initialDate: new Date().toISOString().slice(0, 10),
+      headerToolbar: { left: "prev", center: "title", right: "next" },
       slotMinTime: "07:00:00",
       slotMaxTime: "18:00:00",
       slotDuration: "00:30:00",
+      editable: role === "manager",
       navLinks: true,
-      editable: true,
-      resources: useResources ? peers.map(p => ({ id: p, title: p })) : undefined,
+      resources: useResources
+        ? Array.from(new Set(visible.flatMap(ev => ev.who))).map(p => ({ id: p, title: p }))
+        : undefined,
       events: fcEvents,
-
       eventClick: async info => {
+        if (role !== "manager") return;
         const ep = info.event.extendedProps;
-        const whoList = ep.who;
-        const msg =
-          `Activity: ${ep.activity}\n` +
-          `Who:      ${whoList.join(", ")}\n` +
-          `Location: ${ep.location}\n` +
-          `Date:     ${ep.date}\n` +
-          `Time:     ${to12(ep.start)} – ${to12(ep.end)}\n\n` +
-          `OK to delete, Cancel to keep.`;
-        if (confirm(msg)) {
-          const allEvents = await load(EVENT_KEY);
-          const updated = allEvents.filter(e => e.id !== info.event.id);
+        const confirmDelete = confirm(
+          `Activity: ${ep.activity}\nWho: ${ep.who.join(", ")}\nLocation: ${ep.location}\n` +
+          `Time: ${to12(ep.start)} – ${to12(ep.end)}\nDelete this event?`
+        );
+        if (confirmDelete) {
+          const updated = stored.filter(e => e.id !== ep.id);
           await save(EVENT_KEY, updated);
           info.event.remove();
         }
       },
-
       eventDidMount: info => {
         const loc = info.event.extendedProps.location;
         info.el.querySelector(".fc-event-title")
-                .insertAdjacentHTML("beforeend",
-                  `<div style="font-size:.8em;color:#555">${loc}</div>`);
+          .insertAdjacentHTML("beforeend", `<div style="font-size:.8em;color:#555">${loc}</div>`);
       }
     });
 
     calendar.render();
+    calendarEl?.classList.remove("hidden");
+  };
+
+  const showDayBtn = document.getElementById("showDayBtn");
+  const showWeekBtn = document.getElementById("showWeekBtn");
+  const showPeerBtn = document.getElementById("showPeerBtn");
+
+  if (showDayBtn) showDayBtn.onclick = () => renderCalendar("timeGridDay", false);
+  if (showWeekBtn) showWeekBtn.onclick = () => renderCalendar("timeGridWeek", false);
+  if (showPeerBtn) showPeerBtn.onclick = () => renderCalendar("resourceTimelineDay", true);
+
+  // ─── Schedule Page: Add Event ──────────────
+  if (document.getElementById("addEventBtn")) {
+    auth.onAuthStateChanged(async user => {
+      if (!user) return;
+
+      const userDoc = await db.collection("users").doc(user.uid).get();
+      const userData = userDoc.data();
+      window.currentUser = {
+        uid: user.uid,
+        email: user.email,
+        name: userData.name || user.email.split("@")[0],
+        role: userData.role
+      };
+
+      const snapshot = await db.collection("users").where("role", "==", "peer").get();
+      const peers = snapshot.docs.map(doc => doc.data().name || doc.data().email);
+      const activities = await load(ACT_KEY);
+      const locations = await load(LOC_KEY);
+
+      populateSelect("activitySelect", activities, "Activity");
+      populateSelect("locationSelect", locations, "Location");
+      renderPeerToggles(peers);
+
+      document.getElementById("formContainer").onsubmit = async (e) => {
+        e.preventDefault();
+        try {
+          if (mode === "login") {
+            const result = await auth.signInWithEmailAndPassword(emailField.value, passwordField.value);
+            const uid = result.user.uid;
+            const doc = await db.collection("users").doc(uid).get();
+            if (!doc.exists) {
+              await db.collection("users").doc(uid).set({
+                uid,
+                email: emailField.value,
+                role: "peer",
+                name: emailField.value.split("@")[0]
+              });
+            }
+          } else {
+            if (!nameField.value.trim()) {
+              errorMsg.textContent = "Please enter your name.";
+              return;
+            }
+            const result = await auth.createUserWithEmailAndPassword(emailField.value, passwordField.value);
+            const uid = result.user.uid;
+            await db.collection("users").doc(uid).set({
+              uid,
+              email: emailField.value,
+              role: "peer",
+              name: nameField.value.trim()
+            });
+          }
+          window.location.href = "index.html";
+        } catch (err) {
+          errorMsg.textContent = err.message;
+        }
+      };
+      
+
+      document.getElementById("addEventBtn").onclick = async () => {
+        const get = id => document.getElementById(id);
+        const activity = get("activitySelect").value;
+        const location = get("locationSelect").value;
+        const date = get("date").value;
+        const start = get("start").value;
+        const end = get("end").value;
+        const who = Array.from(document.querySelectorAll(".peer-checkbox:checked")).map(cb => cb.value);
+
+        if (!activity || !location || !date || !start || !end || who.length === 0) {
+          return alert("Please complete all fields");
+        }
+
+        if (end <= start) {
+          return alert("End time must be after start time");
+        }
+
+        const events = await load(EVENT_KEY);
+        events.push({ id: Date.now().toString(), activity, location, date, start, end, who });
+        await save(EVENT_KEY, events);
+
+        ["date", "start", "end"].forEach(id => get(id).value = "");
+        get("activitySelect").selectedIndex = 0;
+        get("locationSelect").selectedIndex = 0;
+        document.querySelectorAll(".peer-checkbox").forEach(cb => cb.checked = false);
+        alert("Event added ✔️");
+      };
+    });
   }
-
-  // ─── Calendar Controls ──────────────────────────────────────────
-  const showDayBtn   = document.getElementById("showDayBtn");
-  const showWeekBtn  = document.getElementById("showWeekBtn");
-  const showPeerBtn  = document.getElementById("showPeerBtn");
-
-  if (showDayBtn)  showDayBtn.onclick  = () => initCalendar("timeGridDay", false);
-  if (showWeekBtn) showWeekBtn.onclick = () => initCalendar("timeGridWeek", false);
-  if (showPeerBtn) showPeerBtn.onclick = () => initCalendar("resourceTimelineDay", true);
 });

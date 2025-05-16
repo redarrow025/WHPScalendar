@@ -3,43 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <title>WHPS schedule — Home</title>
-
-  <!-- FullCalendar Scheduler CSS -->
-  <link
-    href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.17/index.global.min.css"
-    rel="stylesheet"
-  />
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.17/index.global.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <div id="loader" class="loader"></div>
+
   <h1>WHPS Schedule Planner</h1>
-    <nav>
-      <input type="checkbox" id="nav-toggle" hidden>
-        <label for="nav-toggle" class="hamburger">☰</label>
-        <ul class="nav-list">
-          <li><a href="index.html">Home</a></li>
-          <li><a href="schedule.html">Add/Edit Events</a></li>
-          <li><a href="options.html">Manage Options</a></li>
-        </ul>
-      </nav>
+  <nav>
+    <ul class="nav-list">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="schedule.html" class="manager-only">Add/Edit Events</a></li>
+      <li><a href="options.html" class="manager-only">Manage Options</a></li>
+      <li><a href="#" id="logoutBtn">Logout</a></li>
+    </ul>
+  </nav>
 
-      
-
-
-  <h2>Welcome</h2>
-  <p>Use the buttons below to view your calendar:</p>
+  <h2 id="welcomeMsg">Hello 👋</h2>
   <div class="controls">
-    <button id="showDayBtn">📅 Show Day</button>
-    <button id="showWeekBtn">📆 Show Week</button>
-    <button id="showPeerBtn">👥 Show Peer Timeline</button>
+    <button id="showDayBtn">📅 Show Day</button>
+    <button id="showWeekBtn">📆 Show Week</button>
+    <button id="showPeerBtn">👥 Show Peer Timeline</button>
   </div>
   <div id="calendar" class="hidden"></div>
 
-  <!-- Firebase SDKs -->
+  <!-- Firebase + Scripts -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.17/index.global.min.js"></script>
+  <script src="script.js"></script>
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyAFG76JfzmZ11flgn-1M4B034Sz24w7y0E",
@@ -50,12 +43,36 @@
       appId: "1:854280077567:web:1d67e2f5a0395be5104cca",
       measurementId: "G-F07SM2WHCF"
     };
-
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    window.onload = () => {
+      auth.onAuthStateChanged(async user => {
+        if (!user) return window.location.href = "login.html";
+        const doc = await db.collection("users").doc(user.uid).get();
+        const data = doc.data();
+        window.currentUser = {
+          uid: user.uid,
+          email: data.email,
+          role: data.role,
+          name: data.name || data.email.split("@")[0]
+        };
+
+        if (data.role === "peer") {
+          document.querySelectorAll(".manager-only").forEach(el => el.style.display = "none");
+        }
+
+        document.getElementById("welcomeMsg").textContent = `Hello, ${window.currentUser.name} 👋`;
+        document.getElementById("loader").style.display = "none";
+      });
+
+      document.getElementById("logoutBtn").onclick = async (e) => {
+        e.preventDefault();
+        await auth.signOut();
+        window.location.href = "login.html";
+      };
+    };
   </script>
-
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.17/index.global.min.js"></script>
-
-  <script src="script.js"></script>
 </body>
 </html>
